@@ -10,6 +10,17 @@
         exit(1); \
     }
 
+// Function to print matrix according to the specified format
+void print_matrix(double** matrix, int rows, int cols) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            printf("%.4f", matrix[i][j]);
+            if (j < cols - 1) printf(",");
+        }
+        printf("\n");
+    }
+}
+
 // Compute L2 norm between two vectors
 double l2_norm(double* a, double* b, int dim) { 
     double sum = 0.0;
@@ -191,7 +202,7 @@ double** symnmf(double** X, int n, int k) {
 
 /* Read info from Terminal */
 double** readData(int argc, char* argv[], int* k, int* numVectors, int* dim) {
-    
+
     double **vectors = malloc(100 * sizeof(double*)), *vector;
     int vectorCount = 0, capacity = 100, i;
     char line[1024], *token, *p;
@@ -231,29 +242,42 @@ double** readData(int argc, char* argv[], int* k, int* numVectors, int* dim) {
     *numVectors = vectorCount;
     return vectors;
 }
-
 int main(int argc, char *argv[]) {
-    // Read command line arguments
-    int k = atoi(argv[1]);
-    char* goal = argv[2];
-    char* file_path = argv[3];
-    double** X = readData(argc, argv, &k, &n, &dim); /* Read data from stdin */
-    double** W = sym(X, n); /* Compute similarity matrix */
-    double** D = ddg(W, n); /* Compute degree diagonal matrix */
-    double** N = norm(W, D, n); /* Compute normalized graph Laplacian */
-    double** H = optimize(N, n, k); /* Perform SymNMF optimization */
+    int k, n, dim;
+    char* goal;
+    double **X = NULL, **W = NULL, **D = NULL, **N = NULL, **H = NULL;
+    goal = argv[2];
 
-    for (int i = 0; i < n; i++) { /* Print resulting matrix H */
-        for (int j = 0; j < k; j++) {
-            printf("%.4f", H[i][j]);
-            if (j < k - 1) printf(",");
+    // Read input data
+    X = readData(argc, argv, &k, &n, &dim);
+    // Compute similarity matrix
+    W = sym(X, n);
+    if (strcmp(goal, "sym") == 0) {
+        // Print similarity matrix
+        print_matrix(W, n, n);
+        free_matrix(W, n);
+    } else {
+        // Compute degree diagonal matrix
+        D = ddg(W, n);
+        if (strcmp(goal, "ddg") == 0) {
+            // Print degree diagonal matrix
+            print_matrix(D, n, n);
+            free_matrices((double**[]){W, D}, 2, n);
+        } else if (strcmp(goal, "norm") == 0) {
+            // Compute normalized graph Laplacian
+            N = norm(W, D, n);
+            // Print normalized Laplacian
+            print_matrix(N, n, n);
+            free_matrices((double**[]){W, D, N}, 3, n);
+
+        } else {
+            // Invalid goal argument
+            printf("Invalid goal!\n");
+            free_matrices((double**[]){X, W, D}, 3, n);
+            return 1;
         }
-        printf("\n");
     }
-
-    // Free allocated memory
-    free_matrices((double**[]){X, W, D, N, H}, 5, n);
+    // Free input data
+    free_matrix(X, n);
     return 0;
 }
-
-
