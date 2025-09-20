@@ -1,12 +1,13 @@
 import sys
 import numpy as np
 from sklearn.metrics import silhouette_score
-from symnmf import symnmf
+from symnmf_module import symnmf_c
 from kmeans import initCentr, assignClusters, updateCentr
+from symnmf import error
 
 def silhouette_symnmf(X, k): # SymNMF silhouette score calculation
     n = X.shape[0]
-    H = symnmf(X, n, k) # Perform SymNMF
+    H = symnmf_c.symnmf(X, n, k) # Perform SymNMF
     labels = np.argmax(H, axis=1).tolist()  # Assign clusters based on max value in each row
     if k == 1 or k == n:
         return 0.0
@@ -36,5 +37,4 @@ if __name__ == "__main__":
         print(f"nmf: {sym_sklearn:.4f}\nKmeans: {kmeans_sklearn:.4f}")
 
     except Exception as e:
-        print(f"An Error Has Occurred: {e}")
-        sys.exit(1)
+        error()
