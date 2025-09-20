@@ -102,16 +102,17 @@ static PyObject* py_ddg(PyObject *self, PyObject *args) {
 
 static PyObject* py_sym(PyObject *self, PyObject *args) {
     PyObject *py_X;
+    int dim;
     double **X, **result;
     int rows_X, cols_X;
     
-    if (!PyArg_ParseTuple(args, "O", &py_X)) {
+    if (!PyArg_ParseTuple(args, "Oi", &py_X, &dim)) {
         return py_error();
     }
     
     if (!py_to_c_matrix(py_X, &X, &rows_X, &cols_X)) return py_error();
     
-    result = sym(X, rows_X);  // Call external C function
+    result = sym(X, rows_X, dim);  // Call external C function with dim
     
     PyObject* py_result = c_to_py_matrix(result, rows_X, rows_X);
     
@@ -122,23 +123,23 @@ static PyObject* py_sym(PyObject *self, PyObject *args) {
 }
 
 static PyObject* py_symnmf(PyObject *self, PyObject *args) {
-    PyObject *py_X;
+    PyObject *py_W;
     int k;
-    double **X, **result;
-    int rows_X, cols_X;
+    double **W, **result;
+    int rows_W, cols_W;
     
-    if (!PyArg_ParseTuple(args, "Oi", &py_X, &k)) {
+    if (!PyArg_ParseTuple(args, "Oi", &py_W, &k)) {
         return py_error();
     }
     
-    if (!py_to_c_matrix(py_X, &X, &rows_X, &cols_X)) return py_error();
+    if (!py_to_c_matrix(py_W, &W, &rows_W, &cols_W)) return py_error();
     
-    result = symnmf(X, rows_X, k);  // Call external C function
+    result = symnmf(W, rows_W, k);  // Call C function with correct signature
     
-    PyObject* py_result = c_to_py_matrix(result, rows_X, k);
+    PyObject* py_result = c_to_py_matrix(result, rows_W, k);
     
-    free_matrix(X, rows_X);
-    free_matrix(result, rows_X);
+    free_matrix(W, rows_W);
+    free_matrix(result, rows_W);
     
     return py_result;
 }       
@@ -153,7 +154,7 @@ static PyMethodDef SymNMFMethods[] = {
 
 static struct PyModuleDef symnmfmodule = {
     PyModuleDef_HEAD_INIT,
-    "symnmf_module",   // name of module
+    "symnmf",   // name of module
     NULL, // module documentation, may be NULL
     -1,       // size of per-interpreter state of the module,
               // or -1 if the module keeps state in global variables.

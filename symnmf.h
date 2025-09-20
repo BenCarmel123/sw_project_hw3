@@ -18,7 +18,7 @@ void free_matrices(double*** matrices, int count, int rows);
 double** matrix_multiply(double** A, double** B, int n, int m, int p);
 double** matrix_subtract(double** A, double** B, int n, int m);
 double forbenius_norm(double** A, int n);
-double** sym(double** X, int n);
+double** sym(double** X, int n, int dim);
 double** ddg(double** A, int n);
 double** norm(double** A, double** D, int n);
 double** optimize(double** W, int n, int k);
