@@ -18,11 +18,11 @@ void free_matrices(double*** matrices, int count, int rows);
 double** matrix_multiply(double** A, double** B, int n, int m, int p);
 double** matrix_subtract(double** A, double** B, int n, int m);
 double forbenius_norm(double** A, int n);
-double** sym(double** X, int n, int dim);
+double** sym(double** X, int n);
 double** ddg(double** A, int n);
 double** norm(double** A, double** D, int n);
 double** optimize(double** W, int n, int k);
-double** symnmf(double** X, int n, int k, int dim);
+double** symnmf(double** X, int n, int k);
 double** readData(int argc, char* argv[], int* k, int* numVectors, int* dim);
 
 #endif // SYMNMF_H

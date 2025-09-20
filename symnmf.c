@@ -11,10 +11,11 @@
     }
 
 // Error handling function
-void handle_error() {
-    printf("An Error Has Occurred\n");
-    exit(1);
+void* error(void) {
+    fprintf(stderr, "An Error Has Occurred\n");
+    return NULL;
 }
+
 
 // Function to print matrix according to the specified format
 void print_matrix(double** matrix, int rows, int cols) {
@@ -85,7 +86,7 @@ double** matrix_subtract(double** A, double** B, int n, int m) {
 }
 
 // Compute Frobenius norm of a matrix
-double** forbenius_norm(double** A, int n) { 
+double forbenius_norm(double** A, int n) { 
     double norm = 0.0;
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
@@ -95,20 +96,19 @@ double** forbenius_norm(double** A, int n) {
     return sqrt(norm);
 }
 // Compute similarity matrix using Gaussian kernel
-double sym (double** X, int n) { 
+double** sym (double** X, int n) { 
     double** A = malloc(n * sizeof(double*));
     for (int i = 0; i < n; i++) {
         A[i] = malloc(n * sizeof(double));
         for (int j = 0; j < n; j++) {
-            A[i][j] = exp(-0.5 * pow(l2_norm(X[i], X[j], dim), 2));
+            A[i][j] = exp(-0.5 * pow(l2_norm(X[i], X[j], n), 2));
         }
     }
-
     return A;
 }
 
 // Compute degree diagonal matrix
-double ddg(double** A, int n) { 
+double** ddg(double** A, int n) { 
     double** D = malloc(n * sizeof(double*));
     for (int i = 0; i < n; i++) {
         D[i] = malloc(n * sizeof(double));
@@ -124,7 +124,7 @@ double ddg(double** A, int n) {
 }
 
 // Compute normalized graph Laplacian
-double norm(double** A, double** D, int n) { 
+double** norm(double** A, double** D, int n) { 
     double** D_inv_sqrt = malloc(n * sizeof(double*));
     for (int i = 0; i < n; i++) {
         D_inv_sqrt[i] = malloc(n * sizeof(double));
@@ -224,10 +224,11 @@ double** readData(int argc, char* argv[], int* k, int* numVectors, int* dim) {
         // Allocate memory for each vector
         vector = malloc(*dim * sizeof(double));
         CHECK_ALLOC(vector);
-        i = 0, token = my_string(line, ','); /* Split line by commas */
+        i = 0;
+        token = strtok(line, ","); /* Split line by commas */
         while (token) { /* Convert each line to a Vector */
             vector[i++] = atof(token);
-            token = my_string(NULL, ',');
+            token = strtok(NULL, ",");
         }
         *dim = i; 
         // Store the vector and manage memory
@@ -251,7 +252,7 @@ double** readData(int argc, char* argv[], int* k, int* numVectors, int* dim) {
 int main(int argc, char *argv[]) {
     int k, n, dim;
     char* goal;
-    double **X = NULL, **W = NULL, **D = NULL, **N = NULL, **H = NULL;
+    double **X = NULL, **W = NULL, **D = NULL, **N = NULL;
     goal = argv[2];
 
     // Read input data
