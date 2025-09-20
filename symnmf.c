@@ -10,6 +10,12 @@
         exit(1); \
     }
 
+// Error handling function
+void handle_error() {
+    printf("An Error Has Occurred\n");
+    exit(1);
+}
+
 // Function to print matrix according to the specified format
 void print_matrix(double** matrix, int rows, int cols) {
     for (int i = 0; i < rows; i++) {
