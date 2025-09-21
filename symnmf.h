@@ -22,7 +22,7 @@ double** sym(double** X, int n, int dim);
 double** ddg(double** A, int n);
 double** norm(double** A, double** D, int n);
 double** optimize(double** W, int n, int k);
-double** symnmf(double** X, int n, int k);
+double** symnmf(double** H, double** W, int n, int k);
 double** readData(int argc, char* argv[], int* k, int* numVectors, int* dim);
 
 #endif // SYMNMF_H

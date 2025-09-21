@@ -8,9 +8,13 @@ import re
 import subprocess
 import tempfile
 from typing import Optional, Any, IO
+import sys
 
 import numpy as np
 
+def print_matrix(M):
+    for row in M:
+        print(",".join(f"{x:.4f}" for x in row), file=sys.stdout)
 
 VALGRIND_ERRCODE = 99
 EPS = 1e-4
@@ -130,8 +134,8 @@ def initialize_H(k: int, n:int, W:np.ndarray, set_seed=False):
 
     if set_seed:
         np.random.seed(1234)
-
-    return init_H(k, W.shape[0], np.mean(W), seed=1234)
+    H = init_H(k, n, W, seed=1234)
+    return H
 
 
 def symnmf_main(W: np.ndarray, k: int, set_seed=True):
@@ -431,27 +435,31 @@ def test_symnmf_lib():
     )
 
     goal_name = format_goal_name("sym")
-    A = np.array(symnmf_c.sym(test_data.X, test_data.X.shape[1]))
+    A = np.array(symnmf_c.sym(test_data.X.tolist(), test_data.X.shape[1]))
+    print_matrix(A)
     if not np.all(np.linalg.norm(test_data.A - A, axis=1) < EPS):
         print_red(err_msg.format(goal_name))
         return False
 
     goal_name = format_goal_name("ddg")
-    D = np.array(symnmf_c.ddg(test_data.X))
+    D = np.array(symnmf_c.ddg(test_data.X.tolist()))
+    print_matrix(D)
     if not np.all(np.linalg.norm(test_data.D - D, axis=1) < EPS):
         print_red(err_msg.format(goal_name))
         return False
 
     goal_name = format_goal_name("norm")
     W_target = normalized_similarity_matrix(test_data.A, test_data.D)
-    W = np.array(symnmf_c.norm(test_data.X))
+    W = np.array(symnmf_c.norm(test_data.X.tolist()))
+    print_matrix(W)
     if not np.all(np.linalg.norm(W_target - W, axis=1) < EPS):
         print_red(err_msg.format(goal_name))
         return False
 
     goal_name = format_goal_name("symnmf")
     initial_H, final_H_target = symnmf_main(W, k)
-    final_H = np.array(symnmf_c.symnmf(initial_H, W))
+    # Convert initial_H and W to lists before passing to symnmf_c.symnmf
+    final_H = np.array(symnmf_c.symnmf(initial_H.tolist(), W.tolist()))
     if not np.all(np.linalg.norm(final_H_target - final_H, axis=1) < EPS):
         print_red(err_msg.format(goal_name))
         return False

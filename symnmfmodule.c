@@ -70,7 +70,7 @@ static PyObject* py_norm(PyObject *self, PyObject *args) {
     
     result = norm(A, D, rows_A);  // Call external C function
     
-    PyObject* py_result = c_to_py_matrix(result, rows_A, cols_A);
+    PyObject* py_result = c_to_py_matrix(result, rows_A, rows_A);
     
     free_matrix(A, rows_A);
     free_matrix(D, rows_D);
@@ -92,7 +92,7 @@ static PyObject* py_ddg(PyObject *self, PyObject *args) {
     
     result = ddg(A, rows_A);  // Call external C function
     
-    PyObject* py_result = c_to_py_matrix(result, rows_A, cols_A);
+    PyObject* py_result = c_to_py_matrix(result, rows_A, rows_A);
     
     free_matrix(A, rows_A);
     free_matrix(result, rows_A);
@@ -112,7 +112,7 @@ static PyObject* py_sym(PyObject *self, PyObject *args) {
     
     if (!py_to_c_matrix(py_X, &X, &rows_X, &cols_X)) return py_error();
     
-    result = sym(X, rows_X, dim);  // Call external C function with dim
+    result = sym(X, rows_X, dim);  
     
     PyObject* py_result = c_to_py_matrix(result, rows_X, rows_X);
     
@@ -123,26 +123,40 @@ static PyObject* py_sym(PyObject *self, PyObject *args) {
 }
 
 static PyObject* py_symnmf(PyObject *self, PyObject *args) {
-    PyObject *py_W;
-    int k;
-    double **W, **result;
-    int rows_W, cols_W;
-    
-    if (!PyArg_ParseTuple(args, "Oi", &py_W, &k)) {
+    PyObject *py_H0, *py_W, *py_res;
+    double **W = NULL, **H0 = NULL, **H;
+    int n, k, n_W_rows, n_W_cols, n_H0_rows, n_H0_cols;
+
+    if (!PyArg_ParseTuple(args, "OOii", &py_H0, &py_W, &n, &k)) return py_error();
+
+    if (!py_to_c_matrix(py_W, &W, &n_W_rows, &n_W_cols) || n_W_rows != n_W_cols) {
+        if (W) free_matrix(W, n_W_rows);
         return py_error();
     }
-    
-    if (!py_to_c_matrix(py_W, &W, &rows_W, &cols_W)) return py_error();
-    
-    result = symnmf(W, rows_W, k);  // Call C function with correct signature
-    
-    PyObject* py_result = c_to_py_matrix(result, rows_W, k);
-    
-    free_matrix(W, rows_W);
-    free_matrix(result, rows_W);
-    
-    return py_result;
-}       
+
+    if (!py_to_c_matrix(py_H0, &H0, &n_H0_rows, &n_H0_cols) || n_H0_cols != k) {
+        free_matrix(W, n_W_rows);
+        if (H0) free_matrix(H0, n_H0_rows);
+        return py_error();
+    }
+
+    if (n != n_W_rows || n != n_H0_rows) {
+        free_matrix(W, n_W_rows);
+        free_matrix(H0, n_H0_rows);
+        return py_error();
+    }
+
+    H = symnmf(H0, W, n, k); 
+
+    free_matrix(W, n_W_rows);
+    free_matrix(H0, n_H0_rows);
+    if (!H) return py_error();
+
+    py_res = c_to_py_matrix(H, n, k);
+    free_matrix(H, n);
+    return py_res;
+}
+
 
 static PyMethodDef SymNMFMethods[] = {
     {"norm", py_norm, METH_VARARGS, "Compute normalized graph Laplacian."},

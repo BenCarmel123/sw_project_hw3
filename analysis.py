@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 from sklearn.metrics import silhouette_score
-from symnmf import symnmf_c
+import symnmf as symnmf_c
 from kmeans import initCentr, assignClusters, updateCentr
 from symnmf import error
 
