@@ -25,7 +25,7 @@ def print_matrix(M):
 def init_H(k, n, W, seed=1234):
     np.random.seed(seed)
     scale = 2 * np.sqrt(W / k)
-    return np.random.uniform(0, scale, size=(n, k)).tolist()
+    return np.random.uniform(0, scale, size=(n, k))
 
 def main():
     if len(sys.argv) != 4: error()
@@ -50,7 +50,7 @@ def main():
         if goal == "norm": print_matrix(W); return
 
         if not (0 < k < n): error()
-        H0 = init_H(k, n, np.mean(W))                    
+        H0 = init_H(k, n, np.mean(W))           
         H = symnmf_c.symnmf(H0, W, k)
         print_matrix(H)
     except Exception:

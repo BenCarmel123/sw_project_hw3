@@ -420,7 +420,7 @@ def test_goal(
 
 
 def test_symnmf_lib():
-    import symnmf_c as symnmf
+    import symnmf as symnmf_c
 
     test_data = TestData(round=False)
     rng = np.random.default_rng()
@@ -431,27 +431,27 @@ def test_symnmf_lib():
     )
 
     goal_name = format_goal_name("sym")
-    A = np.array(symnmf.sym(test_data.X))
+    A = np.array(symnmf_c.sym(test_data.X))
     if not np.all(np.linalg.norm(test_data.A - A, axis=1) < EPS):
         print_red(err_msg.format(goal_name))
         return False
 
     goal_name = format_goal_name("ddg")
-    D = np.array(symnmf.ddg(test_data.X))
+    D = np.array(symnmf_c.ddg(test_data.X))
     if not np.all(np.linalg.norm(test_data.D - D, axis=1) < EPS):
         print_red(err_msg.format(goal_name))
         return False
 
     goal_name = format_goal_name("norm")
     W_target = normalized_similarity_matrix(test_data.A, test_data.D)
-    W = np.array(symnmf.norm(test_data.X))
+    W = np.array(symnmf_c.norm(test_data.X))
     if not np.all(np.linalg.norm(W_target - W, axis=1) < EPS):
         print_red(err_msg.format(goal_name))
         return False
 
     goal_name = format_goal_name("symnmf")
     initial_H, final_H_target = symnmf_main(W, k)
-    final_H = np.array(symnmf.symnmf(initial_H, W))
+    final_H = np.array(symnmf_c.symnmf(initial_H, W))
     if not np.all(np.linalg.norm(final_H_target - final_H, axis=1) < EPS):
         print_red(err_msg.format(goal_name))
         return False

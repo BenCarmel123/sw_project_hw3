@@ -50,15 +50,6 @@ void free_matrix(double** matrix, int rows) {
     free(matrix);
 }
 
-/* Free multiple 2D matrices */
-void free_matrices(double*** matrices, int count, int rows) { 
-    int i;
-    for (i = 0; i < count; i++) {
-        free_matrix(matrices[i], rows);
-    }
-    free(matrices);
-}
-
 /* Multiply two matrices A (n x m) and B (m x p) */
 double** matrix_multiply(double** A, double** B, int n, int m, int p) { 
     double** C = malloc(n * sizeof(double*));
@@ -128,14 +119,12 @@ double** ddg(double** A, int n) {
     int i, j;
     double sum;
     for (i = 0; i < n; i++) {
-        D[i] = malloc(n * sizeof(double));
+        D[i] = calloc(n, sizeof(double)); 
         sum = 0.0;
         for (j = 0; j < n; j++) {
             sum += A[i][j];
         }
-        for (j = 0; j < n; j++) {
-            D[i][j] = (i == j) ? sum : 0.0;
-        }
+        D[i][i] = sum;
     }
     return D;
 }
@@ -181,7 +170,10 @@ double** norm(double** A, double** D, int n) {
     matrices4[1] = temp;
     matrices4[2] = A;
     matrices4[3] = D;
-    free_matrices(matrices4, 4, n);
+    free_matrix(D_inv_sqrt, n);
+    free_matrix(temp, n);
+    free_matrix(A, n);
+    free_matrix(D, n);
     return N;
 }
 
@@ -236,7 +228,12 @@ double** optimize(double** W, int n, int k) {
         matrices6[3] = HHT;
         matrices6[4] = HHTH;
         matrices6[5] = HHT2;
-        free_matrices(matrices6, 6, n); /* Free intermediate matrices */
+        free_matrix(H_old, n);
+        free_matrix(WH, n);
+        free_matrix(H_T, k);
+        free_matrix(HHT, k);
+        free_matrix(HHTH, n);
+        free_matrix(HHT2, n);
         if (norm_diff < 1e-4) break;
     }
     return H;
@@ -308,7 +305,7 @@ double** readData(int argc, char* argv[], int* k, int* numVectors, int* dim) {
 int main(int argc, char *argv[]) {
     int k, n, dim;
     char* goal;
-    double **X = NULL, **W = NULL, **D = NULL, **N = NULL;
+    double **X = NULL, **W = NULL, **D = NULL, **N = NULL, **H = NULL;
     double **matrices3[3];
     double **matrices2[2];
     if (argc != 3) {
@@ -327,14 +324,16 @@ int main(int argc, char *argv[]) {
         free_matrix(W, n);
     } else {
         /* Compute degree diagonal matrix */
-        D = ddg(W, n);
         if (strcmp(goal, "ddg") == 0) {
+            D = ddg(W, n);
             /* Print degree diagonal matrix */
             print_matrix(D, n, n);
             matrices2[0] = W;
             matrices2[1] = D;
-            free_matrices(matrices2, 2, n);
+            free_matrix(W, n);
+            free_matrix(D, n);
         } else if (strcmp(goal, "norm") == 0) {
+            D = ddg(W, n);
             /* Compute normalized graph Laplacian */
             N = norm(W, D, n);
             /* Print normalized Laplacian */
@@ -342,14 +341,25 @@ int main(int argc, char *argv[]) {
             matrices3[0] = W;
             matrices3[1] = D;
             matrices3[2] = N;
-            free_matrices(matrices3, 3, n);
+            free_matrix(X, n);
+            free_matrix(W, n);
+            free_matrix(D, n);
+        } else if (strcmp(goal, "symnmf") == 0) {
+            D = ddg(W, n);
+            /* Perform Symmetric Non-negative Matrix Factorization */
+            N = norm(W, D, n);
+            H = optimize(N, n, k);
+            /* Print factorized matrix H */
+            print_matrix(H, n, k);
+            free_matrix(H, n);
         } else {
-            /* Invalid goal argument */
             printf("Invalid goal!\n");
             matrices3[0] = X;
             matrices3[1] = W;
             matrices3[2] = D;
-            free_matrices(matrices3, 3, n);
+            free_matrix(X, n);
+            free_matrix(W, n);
+            free_matrix(D, n);
             return 1;
         }
     }
