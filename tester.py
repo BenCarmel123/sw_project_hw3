@@ -431,7 +431,7 @@ def test_symnmf_lib():
     )
 
     goal_name = format_goal_name("sym")
-    A = np.array(symnmf_c.sym(test_data.X))
+    A = np.array(symnmf_c.sym(test_data.X, test_data.X.shape[1]))
     if not np.all(np.linalg.norm(test_data.A - A, axis=1) < EPS):
         print_red(err_msg.format(goal_name))
         return False

@@ -172,8 +172,6 @@ double** norm(double** A, double** D, int n) {
     matrices4[3] = D;
     free_matrix(D_inv_sqrt, n);
     free_matrix(temp, n);
-    free_matrix(A, n);
-    free_matrix(D, n);
     return N;
 }
 
@@ -341,7 +339,6 @@ int main(int argc, char *argv[]) {
             matrices3[0] = W;
             matrices3[1] = D;
             matrices3[2] = N;
-            free_matrix(X, n);
             free_matrix(W, n);
             free_matrix(D, n);
         } else if (strcmp(goal, "symnmf") == 0) {
