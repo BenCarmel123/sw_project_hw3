@@ -184,42 +184,6 @@ double** norm(double** A, double** D, int n) {
     return W;
 }
 
-double** initialize_H(double **W, int n, int k) {
-    int i, j;
-    double **H;
-    double m = 0.0;
-    double scale;
-    double r;
-
-    /* compute mean of W */
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < n; j++) {
-            m += W[i][j];
-        }
-    }
-    m /= (double)(n * n);
-
-    /* scale factor */
-    scale = 2.0 * sqrt(m / (double)k);
-
-    /* allocate H */
-    H = create_matrix(n, k);
-    if (!H) return NULL;
-
-    /* reproducible random numbers */
-    srand(1234);
-
-    /* fill H */
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < k; j++) {
-            r = (double)rand() / (double)RAND_MAX;  /* uniform [0,1] */
-            H[i][j] = r * scale;
-            if (H[i][j] < 0.0) H[i][j] = 0.0;  /* enforce non-negativity */
-        }
-    }
-
-    return H;
-}
 
 /* Perform one optimization step for H, return ||H - H_old||_F^2 */
 double optimize(double*** optimization_matrices, double** W, int n, int k) {
@@ -278,6 +242,7 @@ double optimize(double*** optimization_matrices, double** W, int n, int k) {
 
 /* Perform Symmetric Non-negative Matrix Factorization */
 double** symnmf(double** H0, double** W, int n, int k) {
+
     double **H_old, **WH, **H_T, **HHT, **HHTH, **tmp;
     double*** optimization_matrices;
     int it;
