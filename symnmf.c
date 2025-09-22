@@ -2,19 +2,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "symnmf.h"
+
+#define BETA 0.5
+#define MAX_ITER 300
+#define EPSILON 0.0001
+#define DELIMITER ','
+#define SYM "sym"
+#define DDG "ddg"
+#define NORM "norm"
+
+const char *ERR_MSG = "An Error Has Occurred\n";
 
 /* Error handling function */
 void* error(void) {
-    fprintf(stderr, "An Error Has Occurred");
+    fprintf(stderr, "%s", ERR_MSG);
     exit(1);
     return NULL;
 }
-
-/* Global variable for memory allocation check */
-#define CHECK_ALLOC(ptr) \
-    if (!(ptr)) { \
-        return error(); \
-    }
 
 /* Function to print matrix according to the specified format */
 void print_matrix(double **M, int n, int m) {
@@ -37,6 +42,7 @@ double** create_matrix(int rows, int cols) {
     int i;
     for (i = 0; i < rows; i++) {
         matrix[i] = malloc(cols * sizeof(double));
+        CHECK_ALLOC(matrix[i]);
     }
     return matrix;
 }
@@ -71,7 +77,7 @@ void matrix_multiply(double** A, double** B, double** C, int n, int m, int p) {
         for (j = 0; j < p; j++) {
             C[i][j] = 0.0;
             for (k = 0; k < m; k++) {
-                C[i][j] = A[i][k] * B[k][j];
+                C[i][j] += A[i][k] * B[k][j];
             }
         }
     }
@@ -105,7 +111,7 @@ double forbenius_norm(double** A, int n, int m) {
 /* Compute similarity matrix using Gaussian kernel */
 double** sym(double** X, int n, int dim) { 
     double** A = malloc(n * sizeof(double*));
-    int i, j, print_rows;
+    int i, j;
     for (i = 0; i < n; i++) {
         A[i] = malloc(n * sizeof(double));
         for (j = 0; j < n; j++) {
@@ -117,23 +123,13 @@ double** sym(double** X, int n, int dim) {
             }
         }
     }
-    /* Print first 3 rows of similarity matrix for debugging */
-    print_rows = n < 3 ? n : 3;
-    fprintf(stderr, "First 3 rows of similarity matrix (sym):\n");
-    for (i = 0; i < print_rows; i++) {
-        for (j = 0; j < n; j++) {
-            fprintf(stderr, "%.4f ", A[i][j]);
-        }
-        fprintf(stderr, "\n");
-    }
-    fprintf(stderr, "\n");
     return A;
 }
 
 /* Compute degree diagonal matrix */
 double** ddg(double** A, int n) { 
     double** D = malloc(n * sizeof(double*));
-    int i, j, print_rows;
+    int i, j;
     double sum;
     for (i = 0; i < n; i++) {
         D[i] = calloc(n, sizeof(double)); 
@@ -143,16 +139,6 @@ double** ddg(double** A, int n) {
         }
         D[i][i] = sum;
     }
-    /* Print first 3 rows of degree matrix for debugging */
-    print_rows = n < 3 ? n : 3;
-    fprintf(stderr, "First 3 rows of degree matrix (ddg):\n");
-    for (i = 0; i < print_rows; i++) {
-        for (j = 0; j < n; j++) {
-            fprintf(stderr, "%.4f ", D[i][j]);
-        }
-        fprintf(stderr, "\n");
-    }
-    fprintf(stderr, "\n");
     return D;
 }
 
@@ -162,7 +148,7 @@ double** norm(double** A, double** D, int n) {
     double** temp;
     double** W;
     double **matrices4[4];
-    int i, j, k, print_rows;
+    int i, j, k;
     D_inv_sqrt = malloc(n * sizeof(double*));
     temp = NULL;
     W = NULL;
@@ -195,16 +181,6 @@ double** norm(double** A, double** D, int n) {
     matrices4[3] = temp;
     free_matrix(D_inv_sqrt, n);
     free_matrix(temp, n);
-    /* Print first 3 rows of normalized matrix for debugging */
-    print_rows = n < 3 ? n : 3;
-    fprintf(stderr, "First 3 rows of normalized matrix (norm):\n");
-    for (i = 0; i < print_rows; i++) {
-        for (j = 0; j < n; j++) {
-            fprintf(stderr, "%.4f ", W[i][j]);
-        }
-        fprintf(stderr, "\n");
-    }
-    fprintf(stderr, "\n");
     return W;
 }
 
@@ -245,59 +221,70 @@ double** initialize_H(double **W, int n, int k) {
     return H;
 }
 
-/* Perform one optimization step for H */
+/* Perform one optimization step for H, return ||H - H_old||_F^2 */
 double optimize(double*** optimization_matrices, double** W, int n, int k) {
     /* Unpack matrices */
-    double **H, **H_old, **WH, **H_T, **HHT, **HHTH, **HHT2, **tmp;
+    double **H, **H_old, **WH, **H_T, **HHT, **HHTH, **tmp;
     double norm_diff, beta;
     int i, j;
-    H = optimization_matrices[0];
+
+    H     = optimization_matrices[0];
     H_old = optimization_matrices[1];
-    WH = optimization_matrices[2];
-    H_T = optimization_matrices[3];
-    HHT = optimization_matrices[4];
-    HHTH = optimization_matrices[5];
-    HHT2 = optimization_matrices[6];
-    tmp = optimization_matrices[7];
-    /* Store previous H */
+    WH    = optimization_matrices[2];
+    H_T   = optimization_matrices[3];
+    HHT   = optimization_matrices[4];
+    HHTH  = optimization_matrices[5];
+    tmp   = optimization_matrices[6];
+
+    /* Store previous H into H_old */
     for (i = 0; i < n; i++) 
         memcpy(H_old[i], H[i], k * sizeof(double));
-    matrix_multiply(W, H_old, WH, n, n, k); /* WH = W * H_old */
+
+    /* Compute WH = W * H_old */
+    matrix_multiply(W, H_old, WH, n, n, k);
+
     /* H_T = H_old^T */
     for (j = 0; j < k; j++) {
         for (i = 0; i < n; i++) 
             H_T[j][i] = H_old[i][j];
     }
-    matrix_multiply(H_T, H_old, HHT, k, n, k); /* HHT = H_T * H_old */
-    matrix_multiply(H_old, HHT, HHTH, n, k, k); /* HHTH = H_old * HHT */
+
+    /* HHT = H_T * H_old = k x k */
+    matrix_multiply(H_T, H_old, HHT, k, n, k);
+
+    /* HHTH = H_old * HHT = n x k */
+    matrix_multiply(H_old, HHT, HHTH, n, k, k);
+
     /* Update H */
-    beta = 0.5;
+    beta = BETA;
     for (i = 0; i < n; i++) {
         for (j = 0; j < k; j++) {
             double numer = WH[i][j];
             double denom = HHTH[i][j];
-            double frac = (denom != 0) ? numer / denom : 0.0;
-            H[i][j] = H[i][j] * (1.0 - beta + beta * frac); /* Update rule */
+            double frac = (denom != 0.0) ? numer / denom : 0.0;
+            H[i][j] = H[i][j] * (1.0 - beta + beta * frac);
             if (H[i][j] < 1e-10)
                 H[i][j] = 1e-10;
         }
     }
-    matrix_multiply(H, H_T, HHT2, n, k, n); /* HHT2 = H * H^T */
-    matrix_subtract(W, HHT2, tmp, n, n); /* tmp = W - HHT2 */
-    norm_diff = pow(forbenius_norm(tmp, n, n), 2); /* Compute Frobenius norm */
+
+    /* Compute norm_diff = ||H - H_old||_F^2 */
+    matrix_subtract(H, H_old, tmp, n, k);
+    norm_diff = pow(forbenius_norm(tmp, n, k), 2);
+
     return norm_diff;
 }
 
+
 /* Perform Symmetric Non-negative Matrix Factorization */
 double** symnmf(double** H0, double** W, int n, int k) {
-
-    /* Initialize matrices */
-    double **H_old, **WH, **H_T, **HHT, **HHTH, **HHT2, **tmp;
+    double **H_old, **WH, **H_T, **HHT, **HHTH, **tmp;
     double*** optimization_matrices;
     int it;
     double norm_diff;
-    optimization_matrices = malloc(8 * sizeof(double**));
-    optimization_matrices[0] = H0;
+    /* Allocate matrices */
+    optimization_matrices = malloc(7 * sizeof(double**));
+    optimization_matrices[0] = H0;                
     H_old = create_matrix(n, k);
     optimization_matrices[1] = H_old;
     WH = create_matrix(n, k);
@@ -308,32 +295,27 @@ double** symnmf(double** H0, double** W, int n, int k) {
     optimization_matrices[4] = HHT;
     HHTH = create_matrix(n, k);
     optimization_matrices[5] = HHTH;
-    HHT2 = create_matrix(n, n);
-    optimization_matrices[6] = HHT2;
-    tmp = create_matrix(n, n);
-    optimization_matrices[7] = tmp;
+    tmp = create_matrix(n, k);  
+    optimization_matrices[6] = tmp;
 
     /* Iterative optimization */
-    for (it = 0; it < 300; it++) {
+    for (it = 0; it < MAX_ITER; it++) {
         norm_diff = optimize(optimization_matrices, W, n, k);
-        if (norm_diff < 1e-4) 
-            break;
+        if (norm_diff < EPSILON) break;
     }
-
-    /* Free allocated memory */
+    /* Free allocated memory (but return H0) */
     free_matrix(H_old, n);
     free_matrix(WH, n);
     free_matrix(H_T, k);
     free_matrix(HHT, k);
     free_matrix(HHTH, n);
-    free_matrix(HHT2, n);
     free_matrix(tmp, n);
     free(optimization_matrices);
     return H0;
 }
 
 /* Read info from Terminal */
-static double** readData(const char *path, int *outRows, int *outCols) {
+double** readData(const char *path, int *outRows, int *outCols) {
     double** data;
     int i, j, rows, cols;
     char ch;
@@ -346,7 +328,7 @@ static double** readData(const char *path, int *outRows, int *outCols) {
     cols = 0;
     while ((ch = fgetc(file)) != EOF) {
         if (ch == '\n') rows++;
-        if (rows == 0 && ch == ',') cols++;
+        if (rows == 0 && ch == DELIMITER) cols++;
     }
     cols++; 
     fseek(file, 0, SEEK_SET);
@@ -357,7 +339,7 @@ static double** readData(const char *path, int *outRows, int *outCols) {
     while (fscanf(file, "%lf", &val) != EOF) {
         data[i][j++] = val;
         ch = fgetc(file);
-        if (ch == ',') continue;
+        if (ch == DELIMITER) continue;
         if (ch == '\n') {
             i++;
             j = 0;
@@ -377,21 +359,21 @@ int main(int argc, char *argv[]) {
     double **X = NULL, **A = NULL, **D = NULL, **W = NULL;
     goal = argv[1];
 
-    if ((strcmp(goal, "sym") != 0 && strcmp(goal, "ddg") != 0 && strcmp(goal, "norm") != 0) 
+    if ((strcmp(goal, SYM) != 0 && strcmp(goal, DDG) != 0 && strcmp(goal, NORM) != 0) 
     || argc != 3)   /* Only allow sym, ddg, norm and 3 arguments in CMD */
         error();
 
     X = readData(argv[2], &n, &dim);
     A = sym(X, n, dim);
 
-    if (strcmp(goal, "sym") == 0) 
+    if (strcmp(goal, SYM) == 0) 
     {
         print_matrix(A, n, n);
         free_matrix(A, n);
     } 
     else {
         D = ddg(A, n);
-        if (strcmp(goal, "ddg") == 0) 
+        if (strcmp(goal, DDG) == 0) 
         {
             print_matrix(D, n, n);
             free_matrix(A, n);

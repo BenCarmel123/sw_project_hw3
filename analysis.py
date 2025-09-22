@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.metrics import silhouette_score
 import symnmf as symnmf_c
 from kmeans import initCentr, assignClusters, updateCentr
-from symnmf import error
+from symnmf_utils import error
 
 def silhouette_symnmf(X, k): # SymNMF silhouette score calculation
     n = X.shape[0]

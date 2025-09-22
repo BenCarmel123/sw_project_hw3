@@ -13,7 +13,7 @@ TEST_NUM=$2
 MODE=$3
 
 # Build input path from test number
-INPUT="/Users/bcarmel/Downloads/project-tests-v8-27fca/tests/input_${TEST_NUM}.txt"
+INPUT="/Users/bcarmel/Documents/Uni/Software_Project/sw_project_hw3/project-tests-v8-27fcaf2/tests/input_${TEST_NUM}.txt"
 
 # Decide how many lines to show
 if [ "$MODE" == "--full" ]; then

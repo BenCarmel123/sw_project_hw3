@@ -435,15 +435,13 @@ def test_symnmf_lib():
     )
 
     goal_name = format_goal_name("sym")
-    A = np.array(symnmf_c.sym(test_data.X.tolist(), test_data.X.shape[1]))
-    print_matrix(A)
+    A = np.array(symnmf_c.sym(test_data.X.tolist()))
     if not np.all(np.linalg.norm(test_data.A - A, axis=1) < EPS):
         print_red(err_msg.format(goal_name))
         return False
 
     goal_name = format_goal_name("ddg")
     D = np.array(symnmf_c.ddg(test_data.X.tolist()))
-    print_matrix(D)
     if not np.all(np.linalg.norm(test_data.D - D, axis=1) < EPS):
         print_red(err_msg.format(goal_name))
         return False
@@ -451,7 +449,7 @@ def test_symnmf_lib():
     goal_name = format_goal_name("norm")
     W_target = normalized_similarity_matrix(test_data.A, test_data.D)
     W = np.array(symnmf_c.norm(test_data.X.tolist()))
-    print_matrix(W)
+
     if not np.all(np.linalg.norm(W_target - W, axis=1) < EPS):
         print_red(err_msg.format(goal_name))
         return False

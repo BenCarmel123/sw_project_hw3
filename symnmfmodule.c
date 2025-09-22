@@ -106,12 +106,13 @@ static PyObject* py_sym(PyObject *self, PyObject *args) {
     double **X, **result;
     int rows_X, cols_X;
     
-    if (!PyArg_ParseTuple(args, "Oi", &py_X, &dim)) {
+    if (!PyArg_ParseTuple(args, "O", &py_X)) {
         return py_error();
     }
     
     if (!py_to_c_matrix(py_X, &X, &rows_X, &cols_X)) return py_error();
     
+    dim = cols_X;
     result = sym(X, rows_X, dim);  
     
     PyObject* py_result = c_to_py_matrix(result, rows_X, rows_X);
@@ -123,40 +124,56 @@ static PyObject* py_sym(PyObject *self, PyObject *args) {
 }
 
 static PyObject* py_symnmf(PyObject *self, PyObject *args) {
-    PyObject *py_H0, *py_W, *py_res;
-    double **W = NULL, **H0 = NULL, **H;
-    int n, k, n_W_rows, n_W_cols, n_H0_rows, n_H0_cols;
+    PyObject *py_H0 = NULL, *py_W = NULL, *py_res = NULL;
+    double **W = NULL, **H0 = NULL, **H = NULL;
+    int n = 0, k = 0, nW_r = 0, nW_c = 0, nH_r = 0, nH_c = 0;
 
-    if (!PyArg_ParseTuple(args, "OOii", &py_H0, &py_W, &n, &k)) return py_error();
-
-    if (!py_to_c_matrix(py_W, &W, &n_W_rows, &n_W_cols) || n_W_rows != n_W_cols) {
-        if (W) free_matrix(W, n_W_rows);
+    if (!PyArg_ParseTuple(args, "OO", &py_H0, &py_W)) {
+        fprintf(stderr, "your message 1\n");
+        fflush(stderr);
         return py_error();
     }
 
-    if (!py_to_c_matrix(py_H0, &H0, &n_H0_rows, &n_H0_cols) || n_H0_cols != k) {
-        free_matrix(W, n_W_rows);
-        if (H0) free_matrix(H0, n_H0_rows);
+    if (!py_to_c_matrix(py_H0, &H0, &nH_r, &nH_c))  {
+        fprintf(stderr, "your message 2\n");
+        fflush(stderr);
+        return py_error();
+    }
+    if (!py_to_c_matrix(py_W, &W, &nW_r, &nW_c) || nW_r != nW_c) {
+        free_matrix(H0, nH_r);
+        if (W) free_matrix(W, nW_r);
+        fprintf(stderr, "your message 3\n");
+        fflush(stderr);
+        return py_error();
+    }
+    n = nH_r;
+    k = nH_c;
+    if (n != nW_r) {
+        free_matrix(H0, nH_r);
+        free_matrix(W, nW_r);
+        fprintf(stderr, "your message 4\n");
+        fflush(stderr);
         return py_error();
     }
 
-    if (n != n_W_rows || n != n_H0_rows) {
-        free_matrix(W, n_W_rows);
-        free_matrix(H0, n_H0_rows);
+    H = symnmf(H0, W, n, k); // in-place; H == H0
+    free_matrix(W, nW_r);
+    if (!H) { 
+        free_matrix(H0, n); 
+        fprintf(stderr, "your message 5\n");
+        fflush(stderr);
         return py_error();
+     }
+
+    py_res = c_to_py_matrix(H, n, k); // copy while H is alive
+    free_matrix(H, n);                // free H/H0 after copying
+    if (!py_res) {
+            fprintf(stderr, "your message 6\n");
+            fflush(stderr);
+            return py_error();
     }
-
-    H = symnmf(H0, W, n, k); 
-
-    free_matrix(W, n_W_rows);
-    free_matrix(H0, n_H0_rows);
-    if (!H) return py_error();
-
-    py_res = c_to_py_matrix(H, n, k);
-    free_matrix(H, n);
     return py_res;
 }
-
 
 static PyMethodDef SymNMFMethods[] = {
     {"norm", py_norm, METH_VARARGS, "Compute normalized graph Laplacian."},
