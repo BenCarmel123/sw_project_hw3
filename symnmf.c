@@ -49,13 +49,13 @@ double** create_matrix(int rows, int cols) {
 
 /* Compute L2 norm between two vectors */
 double l2_norm(double* a, double* b, int dim) { 
-    double sum = 0.0;
+    long double sum = 0.0;
     int i;
     for (i = 0; i < dim; i++) {
-        double diff = a[i] - b[i];
+        long double diff = (long double)a[i] - (long double)b[i];
         sum += diff * diff;
     }
-    return sqrt(sum);
+    return sqrt((double)sum);
 }
 
 /* Free allocated memory for a 2D matrix */
@@ -99,14 +99,14 @@ double** matrix_subtract(double** A, double** B, double** C, int n, int m) {
 
 /* Compute Frobenius norm of a matrix */
 double forbenius_norm(double** A, int n, int m) { 
-    double norm = 0.0;
+    long double norm = 0.0;
     int i, j;
     for (i = 0; i < n; i++) {
         for (j = 0; j < m; j++) {
-            norm += A[i][j] * A[i][j];
+            norm += (long double)A[i][j] * (long double)A[i][j];
         }
     }
-    return sqrt(norm);
+    return sqrt((double)norm);
 }
 /* Compute similarity matrix using Gaussian kernel */
 double** sym(double** X, int n, int dim) { 
@@ -130,14 +130,14 @@ double** sym(double** X, int n, int dim) {
 double** ddg(double** A, int n) { 
     double** D = malloc(n * sizeof(double*));
     int i, j;
-    double sum;
+    long double sum;
     for (i = 0; i < n; i++) {
         D[i] = calloc(n, sizeof(double)); 
         sum = 0.0;
         for (j = 0; j < n; j++) {
-            sum += A[i][j];
+            sum += (long double)A[i][j];
         }
-        D[i][i] = sum;
+        D[i][i] = (double)sum;
     }
     return D;
 }
@@ -227,8 +227,8 @@ double optimize(double*** optimization_matrices, double** W, int n, int k) {
             double denom = HHTH[i][j];
             double frac = (denom != 0.0) ? numer / denom : 0.0;
             H[i][j] = H[i][j] * (1.0 - beta + beta * frac);
-            if (H[i][j] < 1e-10)
-                H[i][j] = 1e-10;
+            if (H[i][j] < 1e-15) /* Avoid division by zero */
+                H[i][j] = 1e-15;
         }
     }
 

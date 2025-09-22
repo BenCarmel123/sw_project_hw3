@@ -63,11 +63,16 @@ class TestData:
             if dedup:
                 self.X = np.unique(self.X, axis=0)
 
+            # Ensure all arrays are float64 (C double)
+            self.X = np.array(self.X, dtype=np.float64)
+
             self.A = similarity_matrix(self.X)
+            self.A = np.array(self.A, dtype=np.float64)
 
             np_old_err_settings = np.seterr(divide="raise")
             try:
                 self.D = ddg(self.A)
+                self.D = np.array(self.D, dtype=np.float64)
             except FloatingPointError:
                 retry = True
                 continue
@@ -75,6 +80,7 @@ class TestData:
                 np.seterr(**np_old_err_settings)
 
             self.W = normalized_similarity_matrix(self.A, self.D)
+            self.W = np.array(self.W, dtype=np.float64)
 
 
 def print_green(msg: str, prefix: str = ""):
