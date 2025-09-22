@@ -1,11 +1,7 @@
 import sys
 import numpy as np
 import symnmf as symnmf_c
-
-
-def error():
-    print("An error has occurred", file=sys.stderr)
-    sys.exit(1) 
+from symnmf_utils import error
 
 # Function to load data from a text file
 def load_data(path):
@@ -24,7 +20,7 @@ def print_matrix(M):
 # This file is shadowed by the C extension when imported as 'symnmf'.
 def init_H(k, n, W, seed=1234):
     np.random.seed(seed)
-    m = np.mean(W)  
+    m = np.mean(W, dtype=np.float64)
     scale = 2 * np.sqrt(m / k)
     return np.random.uniform(0, scale, size=(n, k)).tolist()
 
